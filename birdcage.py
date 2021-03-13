@@ -71,11 +71,13 @@ class Birdcage:
         cct = self._create_circuit()
         def voltage(v):
             return v.dc.evaluate(5)
-        voltages = []
+        voltages = {}
         for u, v in self.G_orig.edges():
             un, vn = self._normalize_nodes(u, v)
-            voltages.append((u, v, abs(voltage(cct[un].V) - voltage(cct[vn].V))))
-        return sorted(voltages, key=lambda x: x[2], reverse=True)
+            if u > v:
+                u, v = v, u # sort nodes in edge
+            voltages[(u, v)] = abs(voltage(cct[un].V) - voltage(cct[vn].V))
+        return voltages
 
     def write_dot(self):
         G = self.G
