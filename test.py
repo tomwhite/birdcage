@@ -1,15 +1,15 @@
 from birdcage import *
 import pytest
 
-"""
-     ● - ● - ●           ●
+"""                      
+     ● - ● - ●           ●     Q
 5  ○   ○   ○   ○       / | \ 
 4  | ●   ●   ● |     ● - ● - ●
 3  ○   ○   ○   ○     |   |   |
 2  | ●   ●   ● |     ● - ● - ●
 1  ○   ○   ○   ○       \ | /
-     ● - ● - ●           ●
-     A B C D E
+     ● - ● - ●           ●     0
+     A B C D E       A B C D E
 """
 
 
@@ -56,6 +56,20 @@ def test_move_to_edge():
         move_to_edge("B3")
     with pytest.raises(ValueError):
         move_to_edge("B5")
+
+
+def test_edge_to_move():
+    for move in valid_moves():
+        edge = move_to_edge(move)
+        assert edge_to_move(*edge) == move
+        assert edge_to_move(edge[1], edge[0]) == move
+
+    with pytest.raises(ValueError):
+        edge_to_move("A2", "A5")
+    with pytest.raises(ValueError):
+        edge_to_move("A2", "D2")
+    with pytest.raises(ValueError):
+        edge_to_move("0", "Q")
 
 
 def test_initial_voltages():

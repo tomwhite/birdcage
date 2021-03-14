@@ -23,11 +23,11 @@ def row_range(M=3):
         yield r
 
 
-def all_moves(M=3):
+def all_positions(M=3):
     return {f"{c}{r}" for (c, r) in product(col_range(M), row_range(M))}
 
 def valid_moves(M=3):
-    return {move for move in all_moves(M) if is_valid_move(move, M)}
+    return {move for move in all_positions(M) if is_valid_move(move, M)}
 
 
 def move_to_edge(move, M=3):
@@ -48,6 +48,32 @@ def move_to_edge(move, M=3):
             return f"{col_letter}{row_num-1}", "Q"
         else:
             return f"{col_letter}{row_num-1}", f"{col_letter}{row_num+1}"
+
+
+def edge_to_move(u, v, M=3):
+    if u > v:
+        u, v = v, u # sort nodes in edge
+    if u == "0" and v == "Q":
+        raise ValueError(f"Invalid edge {(u, v)}")
+    if u == "0":
+        vc, vr = v[0], int(v[1])
+        uc, ur = vc, 0
+    elif v == "Q":
+        uc, ur = u[0], int(u[1])
+        vc, vr = uc, 2 * M
+    else:
+        uc, ur = u[0], int(u[1])
+        vc, vr = v[0], int(v[1])
+    if uc == vc:
+        if abs(ur - vr) != 2:
+            raise ValueError(f"Invalid edge {(u, v)}")
+        row_num = (ur + vr) // 2
+        return f"{uc}{row_num}"
+    elif ur == vr:
+        if abs(ord(uc) - ord(vc)) != 2:
+            raise ValueError(f"Invalid edge {(u, v)}")
+        col_letter = chr((ord(uc) + ord(vc)) // 2)
+        return f"{col_letter}{ur}"
 
 
 class Birdcage:
