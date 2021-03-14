@@ -1,6 +1,49 @@
+from itertools import product
 from lcapy import Circuit
 import networkx as nx
 from networkx.drawing import nx_agraph
+
+
+def is_valid_move(move, M=3):
+    col_letter, row_num = move[0], int(move[1])
+    if row_num < 1 or row_num > 2 * M - 1:
+        return False
+    if ord(col_letter) < ord("A") or ord(col_letter) > ord("A") + 2 * M - 2:
+        return False
+    return (ord(col_letter) + row_num) % 2 == 0
+
+
+def col_range(M=3):
+    for c in range(ord("A"), ord("A") + 2 * M - 1):
+        yield chr(c)
+
+
+def row_range(M=3):
+    for r in range(1, 2 * M):
+        yield r
+
+
+def all_moves(M=3):
+    return {f"{c}{r}" for (c, r) in product(col_range(M), row_range(M))}
+
+def valid_moves(M=3):
+    return {move for move in all_moves(M) if is_valid_move(move, M)}
+
+
+def move_to_edge(move, M=3):
+    """Convert a move like 'A3' to a pair of nodes defining an edge."""
+    if not is_valid_move(move, M):
+        raise ValueError(f"Invalid move: {move}")
+    col_letter, row_num = move[0], int(move[1])
+    if row_num == 1:
+        # bottom row nodes are all "0"
+        return "0", f"{col_letter}{row_num+1}"
+    elif row_num == 2 * M - 1:
+        # top row nodes are all "Q"
+        return f"{col_letter}{row_num-1}", "Q"
+    else:
+        return f"{col_letter}{row_num-1}", f"{col_letter}{row_num+1}"
+
 
 class Birdcage:
 

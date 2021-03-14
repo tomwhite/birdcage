@@ -1,6 +1,53 @@
 from birdcage import *
 import pytest
 
+"""
+     ● - ● - ●           ●
+5  ○   ○   ○   ○       / | \ 
+4  | ●   ●   ● |     ● - ● - ●
+3  ○   ○   ○   ○     |   |   |
+2  | ●   ●   ● |     ● - ● - ●
+1  ○   ○   ○   ○       \ | /
+     ● - ● - ●           ●
+     A B C D E
+"""
+
+
+def test_is_valid_move():
+    assert not is_valid_move("A0")
+    assert is_valid_move("A1")
+    assert not is_valid_move("A2")
+    assert is_valid_move("A3")
+    assert not is_valid_move("A4")
+    assert is_valid_move("A5")
+    assert not is_valid_move("A6")
+
+    assert not is_valid_move("B0")
+    assert not is_valid_move("B1")
+    assert is_valid_move("B2")
+    assert not is_valid_move("B3")
+    assert is_valid_move("B4")
+    assert not is_valid_move("B5")
+    assert not is_valid_move("B6")
+
+    assert not is_valid_move("F2")
+
+
+def test_valid_moves():
+    assert valid_moves() == {'A1', 'A3', 'A5', 'B2', 'B4', 'C1', 'C3', 'C5', 'D2', 'D4', 'E1', 'E3', 'E5'}
+
+
+def test_move_to_edge():
+    assert move_to_edge("A1") == ("0", "A2")
+    assert move_to_edge("A3") == ("A2", "A4")
+    assert move_to_edge("A5") == ("A4", "Q")
+
+    with pytest.raises(ValueError):
+        move_to_edge("A2")
+    with pytest.raises(ValueError):
+        move_to_edge("A4")
+
+
 def test_initial_voltages():
     B = Birdcage()
 
