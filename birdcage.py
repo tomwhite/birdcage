@@ -25,10 +25,10 @@ class Birdcage:
                     G.add_edge(f"{i}_{j}", f"{i}_{j+1}", R=1.0)
         return G
 
-    def _normalize_nodes(self, n1, n2):
+    def _normalize_nodes(self, *nodes):
         """Ensure node is in G"""
         rn = self.removed_nodes
-        return rn.get(n1, n1), rn.get(n2, n2)
+        return tuple(rn.get(n, n) for n in nodes)
 
     def cut(self, n1, n2):
         n1, n2 = self._normalize_nodes(n1, n2)
