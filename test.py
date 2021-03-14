@@ -47,28 +47,38 @@ def test_move_to_edge():
     with pytest.raises(ValueError):
         move_to_edge("A4")
 
+    assert move_to_edge("B2") == ("A2", "C2")
+    assert move_to_edge("B4") == ("A4", "C4")
+
+    with pytest.raises(ValueError):
+        move_to_edge("B1")
+    with pytest.raises(ValueError):
+        move_to_edge("B3")
+    with pytest.raises(ValueError):
+        move_to_edge("B5")
+
 
 def test_initial_voltages():
     B = Birdcage()
 
     voltages = B.get_voltage_differences()
-    assert voltages[('0_0', 'Q')] == pytest.approx(5/3)
-    assert voltages[('0_1', 'Q')] == pytest.approx(5/3)
-    assert voltages[('0_2', 'Q')] == pytest.approx(5/3)
+    assert voltages[('A4', 'Q')] == pytest.approx(5/3)
+    assert voltages[('C4', 'Q')] == pytest.approx(5/3)
+    assert voltages[('E4', 'Q')] == pytest.approx(5/3)
 
-    assert voltages[('0_0', '0_1')] == 0
-    assert voltages[('0_1', '0_2')] == 0
+    assert voltages[('A4', 'C4')] == 0
+    assert voltages[('C4', 'E4')] == 0
 
-    assert voltages[('0_0', '1_0')] == pytest.approx(5/3)
-    assert voltages[('0_1', '1_1')] == pytest.approx(5/3)
-    assert voltages[('0_2', '1_2')] == pytest.approx(5/3)
+    assert voltages[('A2', 'A4')] == pytest.approx(5/3)
+    assert voltages[('C2', 'C4')] == pytest.approx(5/3)
+    assert voltages[('E2', 'E4')] == pytest.approx(5/3)
 
-    assert voltages[('1_0', '1_1')] == 0
-    assert voltages[('1_1', '1_2')] == 0
+    assert voltages[('A2', 'C2')] == 0
+    assert voltages[('C2', 'E2')] == 0
 
-    assert voltages[('0', '1_0')] == pytest.approx(5/3)
-    assert voltages[('0', '1_1')] == pytest.approx(5/3)
-    assert voltages[('0', '1_2')] == pytest.approx(5/3)
+    assert voltages[('0', 'A2')] == pytest.approx(5/3)
+    assert voltages[('0', 'C2')] == pytest.approx(5/3)
+    assert voltages[('0', 'E2')] == pytest.approx(5/3)
 
 
 def test_minimal_failure():
@@ -77,11 +87,11 @@ def test_minimal_failure():
 
     B = Birdcage()
 
-    B.cut("0_0", "Q")
-    B.short("Q", "0_1")
+    B.cut("A4", "Q")
+    B.short("Q", "C4")
 
     voltages = B.get_voltage_differences()
-    assert voltages[('0_0', 'Q')] == pytest.approx(5 * (129 - 89) / 129)
+    assert voltages[('A4', 'Q')] == pytest.approx(5 * (129 - 89) / 129)
 
     voltages = B.get_voltages()
     print(voltages.nodes)

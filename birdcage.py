@@ -35,14 +35,19 @@ def move_to_edge(move, M=3):
     if not is_valid_move(move, M):
         raise ValueError(f"Invalid move: {move}")
     col_letter, row_num = move[0], int(move[1])
-    if row_num == 1:
-        # bottom row nodes are all "0"
-        return "0", f"{col_letter}{row_num+1}"
-    elif row_num == 2 * M - 1:
-        # top row nodes are all "Q"
-        return f"{col_letter}{row_num-1}", "Q"
+    if ord(col_letter) % 2 == 0:
+        prev_col_letter = chr(ord(col_letter) - 1)
+        next_col_letter = chr(ord(col_letter) + 1)
+        return f"{prev_col_letter}{row_num}", f"{next_col_letter}{row_num}"
     else:
-        return f"{col_letter}{row_num-1}", f"{col_letter}{row_num+1}"
+        if row_num == 1:
+            # bottom row nodes are all "0"
+            return "0", f"{col_letter}{row_num+1}"
+        elif row_num == 2 * M - 1:
+            # top row nodes are all "Q"
+            return f"{col_letter}{row_num-1}", "Q"
+        else:
+            return f"{col_letter}{row_num-1}", f"{col_letter}{row_num+1}"
 
 
 class Birdcage:
@@ -56,16 +61,9 @@ class Birdcage:
     def _create_network(self):
         M = self.M
         G = nx.Graph()
-        for i in range(M - 1):
-            for j in range(M):
-                if i == 0: # join top row to Q
-                    G.add_edge(f"{i}_{j}", "Q", R=1.0)
-                if i == M - 2: # join bottom row to P (0)
-                    G.add_edge("0", f"{i}_{j}", R=1.0)
-                if i < M - 2: # join right
-                    G.add_edge(f"{i}_{j}", f"{i+1}_{j}", R=1.0)
-                if j < M - 1: # join down
-                    G.add_edge(f"{i}_{j}", f"{i}_{j+1}", R=1.0)
+        for move in valid_moves(M):
+            u, v = move_to_edge(move, M)
+            G.add_edge(u, v, R=1.0)
         return G
 
     def _normalize_nodes(self, *nodes):
@@ -132,7 +130,7 @@ class Birdcage:
         for node in G:
             nn = self._normalize_nodes(node)[0]
             v = voltage(cct[nn].V)
-            attrs[node] = dict(label=v)
+            attrs[node] = dict(voltage=v)
         nx.set_node_attributes(G, attrs)
         return G
 
@@ -142,8 +140,9 @@ class Birdcage:
         A = nx_agraph.to_agraph(G)
         if "Q" in G.nodes:
             A.add_subgraph(['Q'], rank='same')
-        for i in range(M):
-            subgraph = [n for n in G.nodes if n != 0 and n.startswith(f"{i}_")]
+        for i in range(1, 2 * M):
+            # TODO: fails if 2M > 10
+            subgraph = [n for n in G.nodes if n != 0 and n.endswith(f"{i}")]
             if len(subgraph) > 0:
                 A.add_subgraph(subgraph, rank='same')
         A.add_subgraph(['0'], rank='same')
@@ -176,17 +175,23 @@ def combine_R_parallel(r1, r2):
 if __name__ == "__main__":
     B = Birdcage()
 
-    B.print_voltages()
+    #B.print_voltages()
+    voltages = B.get_voltages()
+    print(nx.get_node_attributes(voltages, "voltage"))
     print(B.get_voltage_differences())
 
-    B.cut("0_0", "Q")
-    B.short("Q", "0_1")
-    B.print_voltages()
+    B.cut("A4", "Q")
+    B.short("Q", "C4")
+    #B.print_voltages()
+    voltages = B.get_voltages()
+    print(nx.get_node_attributes(voltages, "voltage"))
     print(B.get_voltage_differences())
 
-    B.cut("0_1", "1_1")
-    B.short("1_0", "0")
-    B.print_voltages()
+    B.cut("C4", "C2")
+    B.short("A2", "0")
+    #B.print_voltages()
+    voltages = B.get_voltages()
+    print(nx.get_node_attributes(voltages, "voltage"))
     print(B.get_voltage_differences())
 
     B.write_dot()
