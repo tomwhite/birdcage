@@ -12,6 +12,8 @@ import pytest
      A B C D E       A B C D E
 """
 
+VALID_MOVES = {'A1', 'A3', 'A5', 'B2', 'B4', 'C1', 'C3', 'C5', 'D2', 'D4', 'E1', 'E3', 'E5'}
+
 
 def test_is_valid_move():
     b = Board()
@@ -38,7 +40,7 @@ def test_is_valid_move():
 def test_valid_moves():
     b = Board()
 
-    assert b.valid_moves() == {'A1', 'A3', 'A5', 'B2', 'B4', 'C1', 'C3', 'C5', 'D2', 'D4', 'E1', 'E3', 'E5'}
+    assert b.valid_moves() == VALID_MOVES
 
 
 def test_move_to_edge():
