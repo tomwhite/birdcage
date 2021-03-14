@@ -66,7 +66,7 @@ class Birdcage:
             print()
         print(format_voltage(cct[0].V))
 
-    def get_voltages(self):
+    def get_voltage_differences(self):
         # want voltages for whole (original) network
         cct = self._create_circuit()
         def voltage(v):
@@ -120,16 +120,16 @@ if __name__ == "__main__":
     B = Birdcage()
 
     B.print_voltages()
-    print(B.get_voltages())
+    print(B.get_voltage_differences())
 
     B.cut("0_0", "Q")
     B.short("Q", "0_1")
     B.print_voltages()
-    print(B.get_voltages())
+    print(B.get_voltage_differences())
 
     B.cut("0_1", "1_1")
     B.short("1_0", "0")
     B.print_voltages()
-    print(B.get_voltages())
+    print(B.get_voltage_differences())
 
     B.write_dot()

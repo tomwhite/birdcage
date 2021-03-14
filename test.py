@@ -4,7 +4,7 @@ import pytest
 def test_initial_voltages():
     B = Birdcage()
 
-    voltages = B.get_voltages()
+    voltages = B.get_voltage_differences()
     assert voltages[('0_0', 'Q')] == pytest.approx(5/3)
     assert voltages[('0_1', 'Q')] == pytest.approx(5/3)
     assert voltages[('0_2', 'Q')] == pytest.approx(5/3)
@@ -33,6 +33,6 @@ def test_minimal_failure():
     B.cut("0_0", "Q")
     B.short("Q", "0_1")
 
-    voltages = B.get_voltages()
+    voltages = B.get_voltage_differences()
     assert voltages[('0_0', 'Q')] == pytest.approx(5 * (129 - 89) / 129)
 
