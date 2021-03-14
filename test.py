@@ -14,62 +14,70 @@ import pytest
 
 
 def test_is_valid_move():
-    assert not is_valid_move("A0")
-    assert is_valid_move("A1")
-    assert not is_valid_move("A2")
-    assert is_valid_move("A3")
-    assert not is_valid_move("A4")
-    assert is_valid_move("A5")
-    assert not is_valid_move("A6")
+    b = Board()
 
-    assert not is_valid_move("B0")
-    assert not is_valid_move("B1")
-    assert is_valid_move("B2")
-    assert not is_valid_move("B3")
-    assert is_valid_move("B4")
-    assert not is_valid_move("B5")
-    assert not is_valid_move("B6")
+    assert not b.is_valid_move("A0")
+    assert b.is_valid_move("A1")
+    assert not b.is_valid_move("A2")
+    assert b.is_valid_move("A3")
+    assert not b.is_valid_move("A4")
+    assert b.is_valid_move("A5")
+    assert not b.is_valid_move("A6")
 
-    assert not is_valid_move("F2")
+    assert not b.is_valid_move("B0")
+    assert not b.is_valid_move("B1")
+    assert b.is_valid_move("B2")
+    assert not b.is_valid_move("B3")
+    assert b.is_valid_move("B4")
+    assert not b.is_valid_move("B5")
+    assert not b.is_valid_move("B6")
+
+    assert not b.is_valid_move("F2")
 
 
 def test_valid_moves():
-    assert valid_moves() == {'A1', 'A3', 'A5', 'B2', 'B4', 'C1', 'C3', 'C5', 'D2', 'D4', 'E1', 'E3', 'E5'}
+    b = Board()
+
+    assert b.valid_moves() == {'A1', 'A3', 'A5', 'B2', 'B4', 'C1', 'C3', 'C5', 'D2', 'D4', 'E1', 'E3', 'E5'}
 
 
 def test_move_to_edge():
-    assert move_to_edge("A1") == ("0", "A2")
-    assert move_to_edge("A3") == ("A2", "A4")
-    assert move_to_edge("A5") == ("A4", "Q")
+    b = Board()
+
+    assert b.move_to_edge("A1") == ("0", "A2")
+    assert b.move_to_edge("A3") == ("A2", "A4")
+    assert b.move_to_edge("A5") == ("A4", "Q")
 
     with pytest.raises(ValueError):
-        move_to_edge("A2")
+        b.move_to_edge("A2")
     with pytest.raises(ValueError):
-        move_to_edge("A4")
+        b.move_to_edge("A4")
 
-    assert move_to_edge("B2") == ("A2", "C2")
-    assert move_to_edge("B4") == ("A4", "C4")
+    assert b.move_to_edge("B2") == ("A2", "C2")
+    assert b.move_to_edge("B4") == ("A4", "C4")
 
     with pytest.raises(ValueError):
-        move_to_edge("B1")
+        b.move_to_edge("B1")
     with pytest.raises(ValueError):
-        move_to_edge("B3")
+        b.move_to_edge("B3")
     with pytest.raises(ValueError):
-        move_to_edge("B5")
+        b.move_to_edge("B5")
 
 
 def test_edge_to_move():
-    for move in valid_moves():
-        edge = move_to_edge(move)
-        assert edge_to_move(*edge) == move
-        assert edge_to_move(edge[1], edge[0]) == move
+    b = Board()
+
+    for move in b.valid_moves():
+        edge = b.move_to_edge(move)
+        assert b.edge_to_move(*edge) == move
+        assert b.edge_to_move(edge[1], edge[0]) == move
 
     with pytest.raises(ValueError):
-        edge_to_move("A2", "A5")
+        b.edge_to_move("A2", "A5")
     with pytest.raises(ValueError):
-        edge_to_move("A2", "D2")
+        b.edge_to_move("A2", "D2")
     with pytest.raises(ValueError):
-        edge_to_move("0", "Q")
+        b.edge_to_move("0", "Q")
 
 
 def test_initial_voltages():

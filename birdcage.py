@@ -4,82 +4,90 @@ import networkx as nx
 from networkx.drawing import nx_agraph
 
 
-def is_valid_move(move, M=3):
-    col_letter, row_num = move[0], int(move[1])
-    if row_num < 1 or row_num > 2 * M - 1:
-        return False
-    if ord(col_letter) < ord("A") or ord(col_letter) > ord("A") + 2 * M - 2:
-        return False
-    return (ord(col_letter) + row_num) % 2 == 0
+class Board():
+
+    def __init__(self, M=3):
+        self.M = M
+
+    def col_range(self):
+        for c in range(ord("A"), ord("A") + 2 * self.M - 1):
+            yield chr(c)
+
+    def row_range(self):
+        for r in range(1, 2 * self.M):
+            yield r
+
+    def all_positions(self):
+        """Return all the positions on the board.
+        
+        Not all positions are valid moves.
+        """
+        return {f"{c}{r}" for (c, r) in product(self.col_range(), self.row_range())}
+
+    def is_valid_move(self, move):
+        M = self.M
+        col_letter, row_num = move[0], int(move[1])
+        if row_num < 1 or row_num > 2 * M - 1:
+            return False
+        if ord(col_letter) < ord("A") or ord(col_letter) > ord("A") + 2 * M - 2:
+            return False
+        return (ord(col_letter) + row_num) % 2 == 0
+
+    def valid_moves(self):
+        """Return all the valid moves on the board."""
+        return {move for move in self.all_positions() if self.is_valid_move(move)}
 
 
-def col_range(M=3):
-    for c in range(ord("A"), ord("A") + 2 * M - 1):
-        yield chr(c)
-
-
-def row_range(M=3):
-    for r in range(1, 2 * M):
-        yield r
-
-
-def all_positions(M=3):
-    return {f"{c}{r}" for (c, r) in product(col_range(M), row_range(M))}
-
-def valid_moves(M=3):
-    return {move for move in all_positions(M) if is_valid_move(move, M)}
-
-
-def move_to_edge(move, M=3):
-    """Convert a move like 'A3' to a pair of nodes defining an edge."""
-    if not is_valid_move(move, M):
-        raise ValueError(f"Invalid move: {move}")
-    col_letter, row_num = move[0], int(move[1])
-    if ord(col_letter) % 2 == 0:
-        prev_col_letter = chr(ord(col_letter) - 1)
-        next_col_letter = chr(ord(col_letter) + 1)
-        return f"{prev_col_letter}{row_num}", f"{next_col_letter}{row_num}"
-    else:
-        if row_num == 1:
-            # bottom row nodes are all "0"
-            return "0", f"{col_letter}{row_num+1}"
-        elif row_num == 2 * M - 1:
-            # top row nodes are all "Q"
-            return f"{col_letter}{row_num-1}", "Q"
+    def move_to_edge(self, move):
+        """Convert a move like 'A3' to a pair of nodes defining an edge."""
+        if not self.is_valid_move(move):
+            raise ValueError(f"Invalid move: {move}")
+        col_letter, row_num = move[0], int(move[1])
+        if ord(col_letter) % 2 == 0:
+            prev_col_letter = chr(ord(col_letter) - 1)
+            next_col_letter = chr(ord(col_letter) + 1)
+            return f"{prev_col_letter}{row_num}", f"{next_col_letter}{row_num}"
         else:
-            return f"{col_letter}{row_num-1}", f"{col_letter}{row_num+1}"
+            if row_num == 1:
+                # bottom row nodes are all "0"
+                return "0", f"{col_letter}{row_num+1}"
+            elif row_num == 2 * self.M - 1:
+                # top row nodes are all "Q"
+                return f"{col_letter}{row_num-1}", "Q"
+            else:
+                return f"{col_letter}{row_num-1}", f"{col_letter}{row_num+1}"
 
-
-def edge_to_move(u, v, M=3):
-    if u > v:
-        u, v = v, u # sort nodes in edge
-    if u == "0" and v == "Q":
-        raise ValueError(f"Invalid edge {(u, v)}")
-    if u == "0":
-        vc, vr = v[0], int(v[1])
-        uc, ur = vc, 0
-    elif v == "Q":
-        uc, ur = u[0], int(u[1])
-        vc, vr = uc, 2 * M
-    else:
-        uc, ur = u[0], int(u[1])
-        vc, vr = v[0], int(v[1])
-    if uc == vc:
-        if abs(ur - vr) != 2:
+    def edge_to_move(self, u, v):
+        if u > v:
+            u, v = v, u # sort nodes in edge
+        if u == "0" and v == "Q":
             raise ValueError(f"Invalid edge {(u, v)}")
-        row_num = (ur + vr) // 2
-        return f"{uc}{row_num}"
-    elif ur == vr:
-        if abs(ord(uc) - ord(vc)) != 2:
-            raise ValueError(f"Invalid edge {(u, v)}")
-        col_letter = chr((ord(uc) + ord(vc)) // 2)
-        return f"{col_letter}{ur}"
+        if u == "0":
+            vc, vr = v[0], int(v[1])
+            uc, ur = vc, 0
+        elif v == "Q":
+            uc, ur = u[0], int(u[1])
+            vc, vr = uc, 2 * self.M
+        else:
+            uc, ur = u[0], int(u[1])
+            vc, vr = v[0], int(v[1])
+        if uc == vc:
+            if abs(ur - vr) != 2:
+                raise ValueError(f"Invalid edge {(u, v)}")
+            row_num = (ur + vr) // 2
+            return f"{uc}{row_num}"
+        elif ur == vr:
+            if abs(ord(uc) - ord(vc)) != 2:
+                raise ValueError(f"Invalid edge {(u, v)}")
+            col_letter = chr((ord(uc) + ord(vc)) // 2)
+            return f"{col_letter}{ur}"
 
 
 class Birdcage:
 
     def __init__(self, M=3):
         self.M = M
+        self.board = Board(M)
         self.G_orig = self._create_network()
         self.G = self.G_orig.copy()
         self.removed_nodes = {} # mapping to equivalents in G
@@ -87,8 +95,8 @@ class Birdcage:
     def _create_network(self):
         M = self.M
         G = nx.Graph()
-        for move in valid_moves(M):
-            u, v = move_to_edge(move, M)
+        for move in self.board.valid_moves():
+            u, v = self.board.move_to_edge(move)
             G.add_edge(u, v, R=1.0)
         return G
 
