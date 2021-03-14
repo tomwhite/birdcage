@@ -79,6 +79,20 @@ class Birdcage:
             voltages[(u, v)] = abs(voltage(cct[un].V) - voltage(cct[vn].V))
         return voltages
 
+    def get_voltages(self):
+        # want voltages for whole (original) network
+        cct = self._create_circuit()
+        def voltage(v):
+            return v.dc.evaluate(5)
+        G = self.G_orig.copy()
+        attrs = {}
+        for node in G:
+            nn = self._normalize_nodes(node)[0]
+            v = voltage(cct[nn].V)
+            attrs[node] = dict(label=v)
+        nx.set_node_attributes(G, attrs)
+        return G
+
     def write_dot(self):
         G = self.G
         M = self.M

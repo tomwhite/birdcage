@@ -36,3 +36,7 @@ def test_minimal_failure():
     voltages = B.get_voltage_differences()
     assert voltages[('0_0', 'Q')] == pytest.approx(5 * (129 - 89) / 129)
 
+    voltages = B.get_voltages()
+    print(voltages.nodes)
+    print(nx.get_node_attributes(voltages, "voltage"))
+
