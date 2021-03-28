@@ -114,14 +114,14 @@ def test_random():
 
 def test_shannon_voltage_diffs():
     bc = BirdCage(moves=["A5", "C5"])
-    s = Shannon()
+    s = Shannon(use_pull_up_resistors=False)
     voltage_diffs = s._get_voltage_diffs(bc)
     assert voltage_diffs["C3"] == Rational(129 - 58, 129)
 
 
-def test_shannon_game():
+def test_shannon_game_M3_no_pull_ups():
     bc = BirdCage()
-    s = Shannon()
+    s = Shannon(use_pull_up_resistors=False)
     moves = ["A5", "c5", "C3", "a1", "B4", "e3", "E1", "d2", "C1", "b2", "E5", "d4"]
     for m1, m2 in zip(*[iter(moves)] * 2):
         move = s.play(bc)
@@ -135,6 +135,21 @@ def test_shannon_game():
     assert not bc.white_has_won()
     assert bc.black_has_won()
 
+def test_shannon_game_M3():
+    bc = BirdCage()
+    s = Shannon()
+    moves = ["A1", "c1", "C3", "a5", "B2", "e3", "E5", "d4", "D2", "e1", "B4", "c5"]
+    for m1, m2 in zip(*[iter(moves)] * 2):
+        move = s.play(bc)
+        if move != m1:
+            # moves differ, but check their voltage differences are the same
+            # this checks that Shannon is consistent with the expected moves
+            voltage_diffs = s._get_voltage_diffs(bc)
+            assert voltage_diffs[move] == voltage_diffs[m1]
+        bc.move(m1)
+        bc.move(m2.upper())
+    assert not bc.white_has_won()
+    assert bc.black_has_won()
 
 @pytest.mark.slow
 def test_shannon_game_M4():
@@ -184,6 +199,10 @@ def test_part_of_circuit_not_connected():
     # following should not raise an error
     voltage_diffs = s._get_voltage_diffs(bc)
 
+    s = Shannon(use_pull_up_resistors=False)
+    with pytest.raises(Exception):
+        voltage_diffs = s._get_voltage_diffs(bc)
+
 @pytest.mark.slow
 def test_discrete_voltage_discrimination():
     # There are circuits where the Shannon heuristic breaks down
@@ -191,7 +210,7 @@ def test_discrete_voltage_discrimination():
     # This example was found using find_min_delta.py.
 
     bc = BirdCage(M=4, moves=["A1", "B4", "E3", "D6"])
-    s = Shannon()
+    s = Shannon(use_pull_up_resistors=False)
     voltage_diffs = s._get_voltage_diffs(bc)
     assert voltage_diffs["C1"] > voltage_diffs["G3"]
     assert round((voltage_diffs["C1"] * 1024).evalf()) == round((voltage_diffs["G3"] * 1024).evalf())

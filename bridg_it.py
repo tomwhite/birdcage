@@ -234,6 +234,10 @@ class Random:
         return "Random"
 
 class Shannon:
+
+    def __init__(self, use_pull_up_resistors=True):
+        self.use_pull_up_resistors = use_pull_up_resistors
+
     def play(self, board):
         birdcage = BirdCage(board.M, board.moves)
         voltage_diffs = self._get_voltage_diffs(birdcage)
@@ -281,35 +285,26 @@ class Shannon:
         G = birdcage.G
         f = self._to_circuit_node
 
-        # only convert graph components connected to top and bottom (otherwise lcapy can't solve)
-        top_component_nodes = nx.node_connected_component(G, (M, 2 * M))
-        bottom_component_nodes = nx.node_connected_component(G, (M, 0))
-        components = []
-        components.append(G.subgraph(top_component_nodes).copy())
-        if set(top_component_nodes) != set(bottom_component_nodes):
-            components.append(G.subgraph(bottom_component_nodes).copy())
-
         s = 'V1 "Q" 0 1; down\n'
         s += f'W "Q" "{M}_{2 * M}"; right={M / 2}\n'
         s += f'W 0 "{M}_0"; right={M / 2}\n'
-        for component in components:
-            for n1, n2, d in component.edges(data=True):
-                R = d["weight"]
-                orient = self._orientation(n1, n2)
-                if R == 0:
-                    s += f'W "{f(n1)}" "{f(n2)}"; {orient}\n' # wire
-                else:
-                    s += f'R__{f(n1)}__{f(n2)} "{f(n1)}" "{f(n2)}" {R}; {orient}\n' # resistor
+        for n1, n2, d in G.edges(data=True):
+            R = d["weight"]
+            orient = self._orientation(n1, n2)
+            if R == 0:
+                s += f'W "{f(n1)}" "{f(n2)}"; {orient}\n' # wire
+            else:
+                s += f'R__{f(n1)}__{f(n2)} "{f(n1)}" "{f(n2)}" {R}; {orient}\n' # resistor
+        if self.use_pull_up_resistors:
+            # need pull-up resistors to avoid errors if part of circuit is not connected
+            for n in G.nodes():
+                s += f'R__{f(n)}__Q "{f(n)}" "Q" 30\n' # pull-up resistor
         return Circuit(s)
 
     def _get_voltage(self, circuit, node):
-        try:
-            v = circuit[self._to_circuit_node(node)].V
-            # convert to a SymPy Rational
-            return v.dc.as_expr().expr
-        except AttributeError:
-            # node may be missing if part of a non-connected component
-            return sympy.S.Zero
+        v = circuit[self._to_circuit_node(node)].V
+        # convert to a SymPy Rational
+        return v.dc.as_expr().expr
 
     def __str__(self):
         return "Shannon"
