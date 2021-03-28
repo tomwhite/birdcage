@@ -3,6 +3,7 @@ from itertools import product
 from lcapy import Circuit
 import networkx as nx
 import random
+import sympy
 
 # Utility functions for dealing with move notation
 
