@@ -302,11 +302,10 @@ class Shannon:
         return Circuit(s)
 
     def _get_voltage(self, circuit, node):
-        def voltage(v):
+        try:
+            v = circuit[self._to_circuit_node(node)].V
             # convert to a SymPy Rational
             return v.dc.as_expr().expr
-        try:
-            return voltage(circuit[self._to_circuit_node(node)].V)
         except AttributeError:
             # node may be missing if part of a non-connected component
             return sympy.S.Zero
