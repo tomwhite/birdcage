@@ -1,3 +1,4 @@
+import math
 from itertools import product
 from lcapy import Circuit
 import networkx as nx
@@ -267,7 +268,6 @@ class Shannon:
             return "up" if uy < vy else "down"
         if uy == vy:
             return "right" if ux < vx else "left"
-        import math
         angle = math.degrees(math.atan2(vy - uy, vx - ux))
         return f"rotate={angle}"
 
