@@ -176,3 +176,9 @@ def test_shannon_game_M4():
         bc.move(m2.upper())
     assert not bc.white_has_won()
     assert bc.black_has_won()
+
+def test_part_of_circuit_not_connected():
+    bc = BirdCage(moves=["E1", "E3", "D2", "B2", "D4", "B4", "E5"])
+    s = Shannon()
+    # following should not raise an error
+    voltage_diffs = s._get_voltage_diffs(bc)

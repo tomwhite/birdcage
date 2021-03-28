@@ -282,20 +282,33 @@ class Shannon:
         s = 'V1 "Q" 0 1; down\n'
         s += f'W "Q" "{M}_{2 * M}"; right={M / 2}\n'
         s += f'W 0 "{M}_0"; right={M / 2}\n'
-        for n1, n2, d in G.edges(data=True):
-            R = d["weight"]
-            orient = self._orientation(n1, n2)
-            if R == 0:
-                s += f'W "{f(n1)}" "{f(n2)}"; {orient}\n' # wire
-            else:
-                s += f'R__{f(n1)}__{f(n2)} "{f(n1)}" "{f(n2)}" {R}; {orient}\n' # resistor
+
+        # only convert graph components connected to top and bottom (otherwise lcapy can't solve)
+        top_component_nodes = nx.node_connected_component(G, (M, 2 * M))
+        bottom_component_nodes = nx.node_connected_component(G, (M, 0))
+        components = []
+        components.append(G.subgraph(top_component_nodes).copy())
+        if set(top_component_nodes) != set(bottom_component_nodes):
+            components.append(G.subgraph(bottom_component_nodes).copy())
+        for component in components:
+            for n1, n2, d in component.edges(data=True):
+                R = d["weight"]
+                orient = self._orientation(n1, n2)
+                if R == 0:
+                    s += f'W "{f(n1)}" "{f(n2)}"; {orient}\n' # wire
+                else:
+                    s += f'R__{f(n1)}__{f(n2)} "{f(n1)}" "{f(n2)}" {R}; {orient}\n' # resistor
         return Circuit(s)
 
     def _get_voltage(self, circuit, node):
         def voltage(v):
             # convert to a SymPy Rational
             return v.dc.as_expr().expr
-        return voltage(circuit[self._to_circuit_node(node)].V)
+        try:
+            return voltage(circuit[self._to_circuit_node(node)].V)
+        except AttributeError:
+            # node may be missing if part of a non-connected component
+            return sympy.S.Zero
 
     def __str__(self):
         return "Shannon"
