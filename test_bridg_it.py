@@ -14,15 +14,18 @@ from sympy import Rational
      A B C D E  
 """
 
+
 def test_to_numeric():
     assert _to_numeric("A1") == (1, 1)
     assert _to_numeric("A2") == (1, 2)
     assert _to_numeric("A3") == (1, 3)
 
+
 def test_to_alpha():
     assert _to_alpha(1, 1) == ("A1")
     assert _to_alpha(1, 2) == ("A2")
     assert _to_alpha(1, 3) == ("A3")
+
 
 def test_is_valid_move():
     assert not is_valid_move("A0")
@@ -43,9 +46,25 @@ def test_is_valid_move():
 
     assert not is_valid_move("F2")
 
+
 def test_valid_moves():
-    VALID_MOVES = {'A1', 'A3', 'A5', 'B2', 'B4', 'C1', 'C3', 'C5', 'D2', 'D4', 'E1', 'E3', 'E5'}
+    VALID_MOVES = {
+        "A1",
+        "A3",
+        "A5",
+        "B2",
+        "B4",
+        "C1",
+        "C3",
+        "C5",
+        "D2",
+        "D4",
+        "E1",
+        "E3",
+        "E5",
+    }
     assert set(valid_moves(M=3)) == VALID_MOVES
+
 
 def test_game():
     b = BridgIt()
@@ -56,11 +75,13 @@ def test_game():
     assert b.white_has_won()
     assert not b.black_has_won()
 
+
 def test_bridg_it_long_game():
     # from "Bridg-It – Beating Shannon’s Analog Heuristic" by Thomas Fisher
     # https://www.minet.uni-jena.de//math-net/reports/sources/2009/09-07report.pdf
     b = BridgIt()
-    for move in ["A5", "c5", "C3", "a1", "B4", "e3", "E1", "d2", "C1", "b2", "E5", "d4"]:
+    moves = ["A5", "c5", "C3", "a1", "B4", "e3", "E1", "d2", "C1", "b2", "E5", "d4"]
+    for move in moves:
         assert not b.white_has_won()
         assert not b.black_has_won()
         b = b.move(move.upper())
@@ -69,9 +90,11 @@ def test_bridg_it_long_game():
     assert not b.white_has_won()
     assert b.black_has_won()
 
+
 def test_birdcage_long_game():
     bc = BirdCage()
-    for move in ["A5", "c5", "C3", "a1", "B4", "e3", "E1", "d2", "C1", "b2", "E5", "d4"]:
+    moves = ["A5", "c5", "C3", "a1", "B4", "e3", "E1", "d2", "C1", "b2", "E5", "d4"]
+    for move in moves:
         assert not bc.white_has_won()
         assert not bc.black_has_won()
         bc = bc.move(move.upper())
@@ -80,6 +103,7 @@ def test_birdcage_long_game():
     assert not bc.white_has_won()
     assert bc.black_has_won()
 
+
 def test_random():
     bc = BirdCage()
     r = Random()
@@ -87,11 +111,13 @@ def test_random():
     bc.move(move)
     print(bc)
 
+
 def test_shannon_voltage_diffs():
     bc = BirdCage(moves=["A5", "C5"])
     s = Shannon()
     voltage_diffs = s._get_voltage_diffs(bc)
     assert voltage_diffs["C3"] == Rational(129 - 58, 129)
+
 
 def test_shannon_game():
     bc = BirdCage()
@@ -106,3 +132,47 @@ def test_shannon_game():
             assert voltage_diffs[move] == voltage_diffs[m1]
         bc.move(m1)
         bc.move(m2.upper())
+    assert not bc.white_has_won()
+    assert bc.black_has_won()
+
+
+def test_shannon_game_M4():
+    # from "Bridg-It – Beating Shannon’s Analog Heuristic" by Thomas Fisher
+    # section 4.2
+    bc = BirdCage(M=4)
+    s = Shannon()
+    moves = [
+        "A1",
+        "c1",
+        "C3",
+        "e3",
+        "E5",
+        "a7",
+        "A5",
+        "d4",
+        "C5",
+        "g5",
+        "G7",
+        "f6",
+        "E7",
+        "d6",
+        "F4",
+        "g3",
+        "G1",
+        "f2",
+        "C7",
+        "b6",
+        "E1",
+        "d2",
+    ]
+    for m1, m2 in zip(*[iter(moves)] * 2):
+        move = s.play(bc)
+        if move != m1:
+            # moves differ, but check their voltage differences are the same
+            # this checks that Shannon is consistent with the expected moves
+            voltage_diffs = s._get_voltage_diffs(bc)
+            assert voltage_diffs[move] == voltage_diffs[m1]
+        bc.move(m1)
+        bc.move(m2.upper())
+    assert not bc.white_has_won()
+    assert bc.black_has_won()
