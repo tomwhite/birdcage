@@ -96,10 +96,13 @@ def test_shannon_voltage_diffs():
 def test_shannon_game():
     bc = BirdCage()
     s = Shannon()
-    moves = ["A5", "c5", "C3", "a1", "B4", "e3", "E1", "d2"]
+    moves = ["A5", "c5", "C3", "a1", "B4", "e3", "E1", "d2", "C1", "b2", "E5", "d4"]
     for m1, m2 in zip(*[iter(moves)] * 2):
-        print(m1, m2)
         move = s.play(bc)
-        assert move == m1
+        if move != m1:
+            # moves differ, but check their voltage differences are the same
+            # this checks that Shannon is consistent with the expected moves
+            voltage_diffs = s._get_voltage_diffs(bc)
+            assert voltage_diffs[move] == voltage_diffs[m1]
         bc.move(m1)
         bc.move(m2.upper())
