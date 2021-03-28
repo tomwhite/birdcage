@@ -182,3 +182,14 @@ def test_part_of_circuit_not_connected():
     s = Shannon()
     # following should not raise an error
     voltage_diffs = s._get_voltage_diffs(bc)
+
+def test_discrete_voltage_discrimination():
+    # There are circuits where the Shannon heuristic breaks down
+    # when implemented using a 10-bit analog to digital converter (like the Arduino).
+    # This example was found using find_min_delta.py.
+
+    bc = BirdCage(M=4, moves=["A1", "B4", "E3", "D6"])
+    s = Shannon()
+    voltage_diffs = s._get_voltage_diffs(bc)
+    assert voltage_diffs["C1"] > voltage_diffs["G3"]
+    assert round((voltage_diffs["C1"] * 1024).evalf()) == round((voltage_diffs["G3"] * 1024).evalf())

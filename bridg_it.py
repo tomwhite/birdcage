@@ -279,9 +279,6 @@ class Shannon:
         M = birdcage.M
         G = birdcage.G
         f = self._to_circuit_node
-        s = 'V1 "Q" 0 1; down\n'
-        s += f'W "Q" "{M}_{2 * M}"; right={M / 2}\n'
-        s += f'W 0 "{M}_0"; right={M / 2}\n'
 
         # only convert graph components connected to top and bottom (otherwise lcapy can't solve)
         top_component_nodes = nx.node_connected_component(G, (M, 2 * M))
@@ -290,6 +287,10 @@ class Shannon:
         components.append(G.subgraph(top_component_nodes).copy())
         if set(top_component_nodes) != set(bottom_component_nodes):
             components.append(G.subgraph(bottom_component_nodes).copy())
+
+        s = 'V1 "Q" 0 1; down\n'
+        s += f'W "Q" "{M}_{2 * M}"; right={M / 2}\n'
+        s += f'W 0 "{M}_0"; right={M / 2}\n'
         for component in components:
             for n1, n2, d in component.edges(data=True):
                 R = d["weight"]
