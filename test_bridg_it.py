@@ -136,6 +136,7 @@ def test_shannon_game():
     assert bc.black_has_won()
 
 
+@pytest.mark.slow
 def test_shannon_game_M4():
     # from "Bridg-It – Beating Shannon’s Analog Heuristic" by Thomas Fisher
     # section 4.2
@@ -183,6 +184,7 @@ def test_part_of_circuit_not_connected():
     # following should not raise an error
     voltage_diffs = s._get_voltage_diffs(bc)
 
+@pytest.mark.slow
 def test_discrete_voltage_discrimination():
     # There are circuits where the Shannon heuristic breaks down
     # when implemented using a 10-bit analog to digital converter (like the Arduino).
