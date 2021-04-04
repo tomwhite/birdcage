@@ -1,5 +1,5 @@
-from bridg_it import *
-from bridg_it import _to_alpha, _to_numeric
+from birdcage import *
+from birdcage import _to_alpha, _to_numeric
 import pytest
 from sympy import Rational
 

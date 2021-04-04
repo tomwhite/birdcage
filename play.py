@@ -1,4 +1,4 @@
-from bridg_it import *
+from birdcage import *
 
 from blessed import Terminal
 

@@ -1,231 +1,316 @@
+import math
 from itertools import product
 from lcapy import Circuit
 import networkx as nx
-from networkx.drawing import nx_agraph
+import random
+import sympy
+
+# Utility functions for dealing with move notation
+
+def _to_numeric(alpha):
+    """Convert move (or position) from alphanumeric ('A3') to numeric (1, 3) notation."""
+    col_letter, row_num = alpha[0], int(alpha[1])
+    return ord(col_letter) - ord("A") + 1, row_num
+
+def _to_alpha(x, y):
+    """Convert move (or position) from numeric (1, 3) to alphanumeric ('A3') notation."""
+    return f"{chr(x + ord('A') - 1)}{y}"
+
+def is_valid_move(move, M=3):
+    """Check if a move is a valid move on a board of size `M`."""
+    x, y = _to_numeric(move)
+    return 0 < x < 2 * M and 0 < y < 2 * M and (x + y) % 2 == 0
+
+def valid_moves(M=3):
+    """Return all the valid moves on the board of size `M`."""
+    for (x, y) in product(range(1, 2 * M), range(1, 2 * M)):
+        if (x + y) % 2 == 0:
+            yield _to_alpha(x, y)
 
 
-class Board():
+class BridgIt:
+    """A Bridg-It board containing the moves of both players,
+    and a graph of connections for each player.
+    
+    Here is a starting board of size `M`=3:
+
+         ● - ● - ●  
+    5  ○   ○   ○   ○
+    4  | ●   ●   ● |
+    3  ○   ○   ○   ○
+    2  | ●   ●   ● |
+    1  ○   ○   ○   ○
+         ● - ● - ●  
+         A B C D E  
+    """
 
     def __init__(self, M=3):
         self.M = M
+        self.moves = []
+        self.white_graph = nx.Graph()
+        self.black_graph = nx.Graph()
+        # add the initial connections at each side of the board
+        for i in range(M - 1):
+            self.white_graph.add_edge((0, 2 * i + 1), (0, 2 * i + 3))
+            self.black_graph.add_edge((2 * i + 1, 0), (2 * i + 3, 0))
+            self.white_graph.add_edge((2 * M, 2 * i + 1), (2 * M, 2 * i + 3))
+            self.black_graph.add_edge((2 * i + 1, 2 * M), (2 * i + 3, 2 * M))
 
-    def col_range(self):
-        for c in range(ord("A"), ord("A") + 2 * self.M - 1):
-            yield chr(c)
+    def _move_to_edge(self, x, y, white):
+        """Convert a numeric move to an edge."""
+        if (white and x % 2 == 0) or (not white and x % 2 == 1):
+            return (x, y - 1), (x, y + 1)
+        else:
+            return (x - 1, y), (x + 1, y)
 
-    def row_range(self):
-        for r in range(1, 2 * self.M):
-            yield r
+    def white_has_won(self):
+        """Check if white has won, by joining the left and right sides of the board."""
+        return len(list(nx.connected_components(self.white_graph))) == 1
 
-    def all_positions(self):
-        """Return all the positions on the board.
-        
-        Not all positions are valid moves.
-        """
-        return {f"{c}{r}" for (c, r) in product(self.col_range(), self.row_range())}
+    def black_has_won(self):
+        """Check if black has won, by joining the top and bottom sides of the board."""
+        return len(list(nx.connected_components(self.black_graph))) == 1
 
-    def is_valid_move(self, move):
-        M = self.M
-        col_letter, row_num = move[0], int(move[1])
-        if row_num < 1 or row_num > 2 * M - 1:
-            return False
-        if ord(col_letter) < ord("A") or ord(col_letter) > ord("A") + 2 * M - 2:
-            return False
-        return (ord(col_letter) + row_num) % 2 == 0
-
-    def valid_moves(self):
-        """Return all the valid moves on the board."""
-        return {move for move in self.all_positions() if self.is_valid_move(move)}
-
-
-    def move_to_edge(self, move):
-        """Convert a move like 'A3' to a pair of nodes defining an edge."""
-        if not self.is_valid_move(move):
+    def move(self, move):
+        """Apply the given move to the current board and return the resulting board."""
+        if not is_valid_move(move, self.M):
             raise ValueError(f"Invalid move: {move}")
-        col_letter, row_num = move[0], int(move[1])
-        if ord(col_letter) % 2 == 0:
-            prev_col_letter = chr(ord(col_letter) - 1)
-            next_col_letter = chr(ord(col_letter) + 1)
-            return f"{prev_col_letter}{row_num}", f"{next_col_letter}{row_num}"
-        else:
-            if row_num == 1:
-                # bottom row nodes are all "0"
-                return "0", f"{col_letter}{row_num+1}"
-            elif row_num == 2 * self.M - 1:
-                # top row nodes are all "Q"
-                return f"{col_letter}{row_num-1}", "Q"
-            else:
-                return f"{col_letter}{row_num-1}", f"{col_letter}{row_num+1}"
+        if move in self.moves:
+            raise ValueError(f"Move {move} has already been made")
+        x, y = _to_numeric(move)
+        if len(self.moves) % 2 == 0: # white move
+            edge = self._move_to_edge(x, y, True)
+            self.white_graph.add_edge(*edge)
+        else: # black move
+            edge = self._move_to_edge(x, y, False)
+            self.black_graph.add_edge(*edge)
+        self.moves.append(move)
+        return self
 
-    def edge_to_move(self, u, v):
-        if u > v:
-            u, v = v, u # sort nodes in edge
-        if u == "0" and v == "Q":
-            raise ValueError(f"Invalid edge {(u, v)}")
-        if u == "0":
-            vc, vr = v[0], int(v[1])
-            uc, ur = vc, 0
-        elif v == "Q":
-            uc, ur = u[0], int(u[1])
-            vc, vr = uc, 2 * self.M
-        else:
-            uc, ur = u[0], int(u[1])
-            vc, vr = v[0], int(v[1])
-        if uc == vc:
-            if abs(ur - vr) != 2:
-                raise ValueError(f"Invalid edge {(u, v)}")
-            row_num = (ur + vr) // 2
-            return f"{uc}{row_num}"
-        elif ur == vr:
-            if abs(ord(uc) - ord(vc)) != 2:
-                raise ValueError(f"Invalid edge {(u, v)}")
-            col_letter = chr((ord(uc) + ord(vc)) // 2)
-            return f"{col_letter}{ur}"
-
-
-class Birdcage:
-
-    def __init__(self, M=3):
-        self.M = M
-        self.board = Board(M)
-        self.G_orig = self._create_network()
-        self.G = self.G_orig.copy()
-        self.removed_nodes = {} # mapping to equivalents in G
-
-    def _create_network(self):
+    def __str__(self):
+        """Return a printable representation of this board"""
         M = self.M
-        G = nx.Graph()
-        for move in self.board.valid_moves():
-            u, v = self.board.move_to_edge(move)
-            G.add_edge(u, v, R=1.0)
-        return G
+        s = ""
+        for y in range(2 * M, -1, -1):
+            # numbers on left side
+            if 0 < y < 2 * M:
+                s += f"{y} "
+            else:
+                s += "  "
+            # main grid
+            for x in range(0, 2 * M + 1):
+                if (x + y) % 2 == 0: # edge
+                    # TODO: use _move_to_edge here
+                    if x % 2 == 0 and ((x, y - 1), (x, y + 1)) in self.white_graph.edges():
+                        s += "| "
+                    elif x % 2 == 0 and ((x - 1, y), (x + 1, y)) in self.black_graph.edges():
+                        s += "- "
+                    elif x % 2 == 1  and ((x - 1, y), (x + 1, y)) in self.white_graph.edges():
+                        s += "- "
+                    elif x % 2 == 1  and ((x, y - 1), (x, y + 1)) in self.black_graph.edges():
+                        s += "| "
+                    else:
+                        s += "  "
+                else: # node
+                    if x % 2 == 0:
+                        s += "○ "
+                    else:
+                        s += "● "
+            s = s + "\n"
+        # letters on bottom row
+        s += "  "
+        for x in range(0, 2 * M + 1):
+            if 0 < x < 2 * M:
+                s += f"{chr(x + ord('A') - 1)} "
+            else:
+                s += "  "
+        s = s + "\n"
+        return s
 
-    def _normalize_nodes(self, *nodes):
-        """Ensure node is in G"""
-        rn = self.removed_nodes
-        return tuple(rn.get(n, n) for n in nodes)
 
-    def cut(self, n1, n2):
-        n1, n2 = self._normalize_nodes(n1, n2)
-        self.G.remove_edge(n1, n2)
+class BirdCage:
+    """A Bird Cage board containing the moves of both players, and a "bird cage" graph.
+    """
 
-    def short(self, n1, n2):
-        n1, n2 = self._normalize_nodes(n1, n2)
-        # ensure "0" is never removed, and "Q" is kept until the end
-        if not(n1 in (0, "0") and n2 == "Q") and n2 in (0, "0", "Q"):
-            n1, n2 = n2, n1
-        contracted_nodes(self.G, n1, n2)
-        self.removed_nodes.update((k, n1) for k, v in self.removed_nodes.items() if v == n2)
-        self.removed_nodes[n2] = n1
+    def __init__(self, M=3, moves=None):
+        self.M = M
+        self.moves = []
+        # unlike BridgIt, we use a single graph to represent the state
+        self.G = nx.Graph()
+        # add all valid moves as edges of weight 1
+        for move in valid_moves(self.M):
+            x, y = _to_numeric(move)
+            u, v = self._move_to_edge(x, y)
+            self.G.add_edge(u, v, weight=1)
+        # play any moves
+        for move in moves or []:
+            self.move(move)
 
-    def _create_circuit(self):
-        s = 'V1 "Q" 0 V\n'
-        for e in self.G.edges(data=True):
-            R = e[2]["R"]
-            s += f'R__{e[0]}__{e[1]} "{e[0]}" "{e[1]}" {R}\n'
+    def _move_to_edge(self, x, y):
+        """Convert a numeric move to an edge."""
+        if x % 2 == 1:
+            return self._map_node(x, y - 1), self._map_node(x, y + 1)
+        else:
+            return self._map_node(x - 1, y), self._map_node(x + 1, y)
+        
+    def _map_node(self, x, y):
+        """Convert top and bottom row nodes into a single node"""
+        if y in (0, 2 * self.M):
+            return self.M, y
+        return x, y
+
+    def white_has_won(self):
+        """Check if white has won, by CUTting all paths from top to bottom."""
+        top_node = self._map_node(0, 2 * self.M)
+        bottom_node = self._map_node(0, 0)
+        return not nx.has_path(self.G, top_node, bottom_node)
+
+    def black_has_won(self):
+        """Check if black has won, by SHORTing a path from top to bottom."""
+        top_node = self._map_node(0, 2 * self.M)
+        bottom_node = self._map_node(0, 0)
+        return nx.shortest_path_length(self.G, top_node, bottom_node, weight="weight") == 0
+
+    def move(self, move):
+        """Apply the given move to the current board and return the resulting board."""
+        if not is_valid_move(move, self.M):
+            raise ValueError(f"Invalid move: {move}")
+        if move in self.moves:
+            raise ValueError(f"Move {move} has already been made")
+        x, y = _to_numeric(move)
+        u, v = self._move_to_edge(x, y)
+        if len(self.moves) % 2 == 0: # white moves are CUT (remove from graph)
+            self.G.remove_edge(u, v)
+        else: # black moves are SHORT (weight 0)
+            self.G.add_edge(u, v, weight=0)
+        self.moves.append(move)
+        return self
+
+    def __str__(self):
+        """Return a printable representation of this board"""
+        M = self.M
+        s = ""
+        for y in range(2 * M, -1, -1):
+            # numbers on left side
+            if 0 < y < 2 * M:
+                s += f"{y} "
+            else:
+                s += "  "
+            # main grid
+            for x in range(0, 2 * M + 1):
+                if (x + y) % 2 == 0: # edge
+                    edge = self._move_to_edge(x, y)
+                    if edge in self.G.edges():
+                        weight = self.G.get_edge_data(*edge)["weight"]
+                        if y % 2 == 0:
+                            s += "- " if weight == 1 else "= "
+                        else:
+                            s += "| " if weight == 1 else "‖ "
+                    elif 0 < x < 2 * M and y in (0, 2 * M):
+                        s += "= "
+                    else:
+                        s += "  "
+                else: # node
+                    if y % 2 == 0:
+                        s += "● "
+                    else:
+                        s += "  "
+            s = s + "\n"
+        # letters on bottom row
+        s += "  "
+        for x in range(0, 2 * M + 1):
+            if 0 < x < 2 * M:
+                s += f"{chr(x + ord('A') - 1)} "
+            else:
+                s += "  "
+        s = s + "\n"        
+        return s
+
+class Random:
+    def play(self, board):
+        all_moves = valid_moves(board.M)
+        candidate_moves = set(all_moves) - set(board.moves)
+        return random.choice(list(candidate_moves))
+
+    def __str__(self):
+        return "Random"
+
+class Shannon:
+
+    def __init__(self, use_extra_resistors=True):
+        # pull-up resistors and a resistor to avoid shorting (when SHORT wins)
+        self.use_extra_resistors = use_extra_resistors
+
+    def play(self, board):
+        birdcage = BirdCage(board.M, board.moves)
+        voltage_diffs = self._get_voltage_diffs(birdcage)
+        return next(iter(voltage_diffs))
+
+    def _get_voltage_diffs(self, birdcage):
+        """Return a dictionary voltage diffs, keyed by move, in order of decreasing voltage diff"""
+        all_moves = valid_moves(birdcage.M)
+        candidate_moves = set(all_moves) - set(birdcage.moves)
+        # sort moves from top-left to bottom-right (in case of ties)
+        candidate_moves = sorted(candidate_moves, key=lambda x: (-int(x[1]), x[0]))
+        
+        circuit = self._create_circuit(birdcage)
+        #circuit.draw(f"birdcage_move{len(birdcage.moves)}.png", label_ids=False, label_values=False, draw_nodes="all")
+        voltage_diffs = {}
+        for move in candidate_moves:
+            x, y = _to_numeric(move)
+            n1, n2 = birdcage._move_to_edge(x, y)
+            v1 = self._get_voltage(circuit, n1)
+            v2 = self._get_voltage(circuit, n2)
+            voltage_diffs[move] = abs(v1 - v2)
+        # sort by value and return largest
+        voltage_diffs = {k: v for k, v in sorted(voltage_diffs.items(), key=lambda item: -item[1])}
+        return voltage_diffs
+
+    def _orientation(self, u, v):
+        """Return a Lcapy orientation hint for a component placed between two nodes"""
+        if u == v:
+            raise ValueError()
+        ux, uy = u
+        vx, vy = v
+        if ux == vx:
+            return "up" if uy < vy else "down"
+        if uy == vy:
+            return "right" if ux < vx else "left"
+        angle = math.degrees(math.atan2(vy - uy, vx - ux))
+        return f"rotate={angle}"
+
+    def _to_circuit_node(self, node):
+        return f"{node[0]}_{node[1]}"
+
+    def _create_circuit(self, birdcage):
+        """Create a Lcapy circuit from the bird cage graph"""
+        M = birdcage.M
+        G = birdcage.G
+        f = self._to_circuit_node
+
+        s = 'V1 "Q" 0 1; down\n'
+        s += f'W "Q" "{M}_{2 * M}"; right={M / 2}\n'
+        if self.use_extra_resistors:
+            s += f'R 0 "{M}_0" 1; right={M / 2}\n' # avoid short
+        else:
+            s += f'W 0 "{M}_0"; right={M / 2}\n'
+        for n1, n2, d in G.edges(data=True):
+            R = d["weight"]
+            orient = self._orientation(n1, n2)
+            if R == 0:
+                s += f'W "{f(n1)}" "{f(n2)}"; {orient}\n' # wire
+            else:
+                s += f'R__{f(n1)}__{f(n2)} "{f(n1)}" "{f(n2)}" {R}; {orient}\n' # resistor
+        if self.use_extra_resistors:
+            # need pull-up resistors to avoid errors if part of circuit is not connected
+            for n in G.nodes():
+                s += f'R__{f(n)}__Q "{f(n)}" "Q" 30\n' # pull-up resistor
         return Circuit(s)
 
-    def print_voltages(self):
-        M = self.M
-        cct = self._create_circuit()
-        def format_voltage(v):
-            return v.dc
-            # return v.dc.val
-        print(format_voltage(cct["Q"].V))
-        for i in range(M - 1):
-            for j in range(M):
-                node = f"{i}_{j}"
-                node = self.removed_nodes.get(node, node)
-                print(format_voltage(cct[node].V), end="")
-                print(", ", end="")
-            print()
-        print(format_voltage(cct[0].V))
+    def _get_voltage(self, circuit, node):
+        v = circuit[self._to_circuit_node(node)].V
+        # convert to a SymPy Rational
+        return v.dc.as_expr().expr
 
-    def get_voltage_differences(self):
-        # want voltages for whole (original) network
-        cct = self._create_circuit()
-        def voltage(v):
-            return v.dc.evaluate(5)
-        voltages = {}
-        for u, v in self.G_orig.edges():
-            un, vn = self._normalize_nodes(u, v)
-            if u > v:
-                u, v = v, u # sort nodes in edge
-            voltages[(u, v)] = abs(voltage(cct[un].V) - voltage(cct[vn].V))
-        return voltages
-
-    def get_voltages(self):
-        # want voltages for whole (original) network
-        cct = self._create_circuit()
-        def voltage(v):
-            return v.dc.evaluate(5)
-        G = self.G_orig.copy()
-        attrs = {}
-        for node in G:
-            nn = self._normalize_nodes(node)[0]
-            v = voltage(cct[nn].V)
-            attrs[node] = dict(voltage=v)
-        nx.set_node_attributes(G, attrs)
-        return G
-
-    def write_dot(self):
-        G = self.G
-        M = self.M
-        A = nx_agraph.to_agraph(G)
-        if "Q" in G.nodes:
-            A.add_subgraph(['Q'], rank='same')
-        for i in range(1, 2 * M):
-            # TODO: fails if 2M > 10
-            subgraph = [n for n in G.nodes if n != 0 and n.endswith(f"{i}")]
-            if len(subgraph) > 0:
-                A.add_subgraph(subgraph, rank='same')
-        A.add_subgraph(['0'], rank='same')
-        A.draw('G.png', prog='dot')
-
-def contracted_nodes(G, u, v):
-    # based on networkx implementation, but combines resistance values correctly
-    new_edges = (
-            (u, w if w != v else u, d)
-            for x, w, d in G.edges(v, data=True)
-            if w != u
-    )
-    new_edges = list(new_edges)
-
-    v_data = G.nodes[v]
-    G.remove_node(v)
-    for u, v, d in new_edges:
-        if G.has_edge(u, v):
-            r1 = d["R"]
-            r2 = G.get_edge_data(u, v)["R"]
-            R=combine_R_parallel(r1, r2)
-        else:
-            R=d["R"]
-        G.add_edge(u, v, R=R)
-    return G
-
-def combine_R_parallel(r1, r2):
-    return 1 / ((1 / r1) + (1 / r2))
-
-if __name__ == "__main__":
-    B = Birdcage()
-
-    #B.print_voltages()
-    voltages = B.get_voltages()
-    print(nx.get_node_attributes(voltages, "voltage"))
-    print(B.get_voltage_differences())
-
-    B.cut("A4", "Q")
-    B.short("Q", "C4")
-    #B.print_voltages()
-    voltages = B.get_voltages()
-    print(nx.get_node_attributes(voltages, "voltage"))
-    print(B.get_voltage_differences())
-
-    B.cut("C4", "C2")
-    B.short("A2", "0")
-    #B.print_voltages()
-    voltages = B.get_voltages()
-    print(nx.get_node_attributes(voltages, "voltage"))
-    print(B.get_voltage_differences())
-
-    B.write_dot()
+    def __str__(self):
+        return "Shannon"

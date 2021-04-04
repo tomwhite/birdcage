@@ -33,11 +33,13 @@ However, it is possible to always beat the machine (M=3 or 4), as shown by Thoma
 
 ## Software implementation
 
+TODO
 
+## Hardware implementation
 
+In a real implementation a couple of practical changes are needed.
 
-Notation
-Two representations
-Shannon's heuristic
-Demonstration
-Practical changes (extra resistors)
+First, a resistor should be added in series to the whole circuit, to avoid a real short circuit in the event of Short winning.
+
+Second, it's possible that a part of the circuit can become isolated from both the ground and positive power supply, which means that all nodes in it have a floating voltage. Since voltage differences are used to determine the next move, we use pull-up resistors to ensure that spurious voltage differences are not recorded. By using pull-up resistors with much larger resistance than the ones used in the main circuit, we avoid changing the behaviour of the
+heuristic in any significant way. (In a real circuit, small differences in resistor values mean that the machine may not play identically to the theoretical version, but this is rare, and it usually doesn't make much difference.)
