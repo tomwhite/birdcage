@@ -206,6 +206,8 @@ class BirdCage:
                             s += "- " if weight == 1 else "= "
                         else:
                             s += "| " if weight == 1 else "‖ "
+                    elif 0 < x < 2 * M and y in (0, 2 * M):
+                        s += "= "
                     else:
                         s += "  "
                 else: # node
