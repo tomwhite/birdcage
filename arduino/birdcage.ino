@@ -41,15 +41,19 @@ voltage drop between adjoining nodes.
 
 */
 
+// Size of game (can be 3 or 4)
+// TODO: use this to parameterize game
+const int M = 4;
+
 // Pins used to read voltages using analogRead
 byte nodePins[13] = {A13, A12, A11, A10, A9, A8, A6, A5, A4, A3, A2, A1, A15};
 
-// The button to show the next move.
+// Next move button
 // Useful reference: http://www.gammon.com.au/switches
 const byte switchPin = 8;
 byte oldSwitchState = HIGH;
 
-// LED pins
+// LED digital pins
 byte ledRowPins[7] = {51, 49, 47, 45, 43, 41, 39};
 byte ledColumnPins[7] = {35, 33, 31, 29, 27, 25, 23};
 
