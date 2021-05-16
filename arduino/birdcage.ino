@@ -42,12 +42,16 @@ voltage drop between adjoining nodes.
 */
 
 // Pins used to read voltages using analogRead
-byte nodePins[13] = {A1, A2, A3, A4, A5, A6, A8, A9, A10, A11, A12, A13, A15};
+byte nodePins[13] = {A13, A12, A11, A10, A9, A8, A6, A5, A4, A3, A2, A1, A15};
 
 // The button to show the next move.
 // Useful reference: http://www.gammon.com.au/switches
 const byte switchPin = 8;
 byte oldSwitchState = HIGH;
+
+// LED pins
+byte ledRowPins[7] = {51, 49, 47, 45, 43, 41, 39};
+byte ledColumnPins[7] = {35, 33, 31, 29, 27, 25, 23};
 
 // An array storing the state of the circuit.
 // Nodes (where i and j are both even) store the voltages measured via analogRead.
@@ -68,7 +72,14 @@ void setup() {
     pinMode(nodePins[i], INPUT_PULLUP);
   }
 
-  pinMode (switchPin, INPUT_PULLUP);
+  pinMode(switchPin, INPUT_PULLUP);
+
+  for (int i = 0; i < 7; i++) {
+    pinMode(ledColumnPins[i], OUTPUT);
+    pinMode(ledRowPins[i], OUTPUT);
+    digitalWrite(ledColumnPins[i], HIGH);    
+    digitalWrite(ledRowPins[i], HIGH);    
+  }
 
   for (int i = 0; i < 9; i++) {
     for (int j = 0; j < 7; j++) {
@@ -90,13 +101,15 @@ void loop() {
     oldSwitchState = switchState;
     delay(10); // debounce time
     if (switchState == LOW) {
-      checkGameOver();
+      bool gameOver = checkGameOver();
       updateVoltages();
       computeDifferences();
       displayVoltages();
       displayVoltageDifferences();
       //displayMoves();
-      chooseMove();
+      if (!gameOver) {
+        chooseMove();
+      }
     }
   }
 }
@@ -112,29 +125,37 @@ boolean isMove(int i, int j) {
   return (i + j) % 2 == 1;
 }
 
-void checkGameOver() {
+bool checkGameOver() {
+  bool gameOver = false;
   // We know the game is over if the bottom row is either
   // 0V (CUT wins) or 5V (SHORT wins).
+
+  // This is needed otherwise bottomRowVoltage may not be 0 (not sure why)
+  turnAllLedsOff();
   
   // We need to temporarily disconnect the pull-up resistors,
   // since they will alter the voltage readings.
   for (int i = 0; i < 13; i++) {
     pinMode(nodePins[i], INPUT);
   }
-  delay(10);
 
   int bottomRowVoltage = analogRead(A15);
   if (bottomRowVoltage == 0) {
     Serial.println("I win! (CUT)");
+    turnRowLedsOn();
+    gameOver = true;
   } else if (bottomRowVoltage == maxV) {
     Serial.println("You win! (SHORT)");
+    turnColumnLedsOn();
+    gameOver = true;
   }
 
   // Re-connect pull-up resistors
   for (int i = 0; i < 13; i++) {
     pinMode(nodePins[i], INPUT_PULLUP);
   }
-  delay(10);
+
+  return gameOver;
 }
 
 // Read the voltages for all nodes
@@ -197,6 +218,35 @@ void chooseMove() {
   Serial.print(mi);
   Serial.print(", ");
   Serial.println(mj);
+  turnAllLedsOff();
+  showMove(mi, mj);
+}
+
+void turnAllLedsOff() {
+  for (int i = 0; i < 7; i++) { 
+    digitalWrite(ledRowPins[i], LOW);    
+    digitalWrite(ledColumnPins[i], LOW); 
+  }
+}
+
+void turnRowLedsOn() {
+  turnAllLedsOff();
+  for (int i = 0; i < 7; i++) { 
+    digitalWrite(ledRowPins[i], HIGH);    
+  }
+}
+
+void turnColumnLedsOn() {
+  turnAllLedsOff();
+  for (int i = 0; i < 7; i++) { 
+    digitalWrite(ledColumnPins[i], HIGH);    
+  }
+}
+
+void showMove(int i, int j) {
+  // need to subtract 1 from row, since bottom row has no LED
+  digitalWrite(ledRowPins[i - 1], HIGH);      
+  digitalWrite(ledColumnPins[j], HIGH);    
 }
 
 void displayVoltages() {
