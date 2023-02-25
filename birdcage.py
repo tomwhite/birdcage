@@ -3,7 +3,7 @@ from itertools import product
 from lcapy import Circuit
 import networkx as nx
 import random
-import sympy
+from sympy.core.numbers import ilcm
 
 # Utility functions for dealing with move notation
 
@@ -27,6 +27,17 @@ def valid_moves(M=3):
         if (x + y) % 2 == 0:
             yield _to_alpha(x, y)
 
+def display_moves(moves):
+    """Convert a list of moves to a string, using convention that white/CUT is uppercase, black/SHORT is lowercase."""
+    s = ""
+    for i, move in enumerate(moves):
+        if len(s) > 0:
+            s += ", "
+        if i % 2 == 0:
+            s += move.upper()
+        else:
+            s += move.lower()
+    return s
 
 class BridgIt:
     """A Bridg-It board containing the moves of both players,
@@ -44,7 +55,7 @@ class BridgIt:
          A B C D E  
     """
 
-    def __init__(self, M=3):
+    def __init__(self, M=3, moves=None):
         self.M = M
         self.moves = []
         self.white_graph = nx.Graph()
@@ -55,6 +66,9 @@ class BridgIt:
             self.black_graph.add_edge((2 * i + 1, 0), (2 * i + 3, 0))
             self.white_graph.add_edge((2 * M, 2 * i + 1), (2 * M, 2 * i + 3))
             self.black_graph.add_edge((2 * i + 1, 2 * M), (2 * i + 3, 2 * M))
+        # play any moves
+        for move in moves or []:
+            self.move(move)
 
     def _move_to_edge(self, x, y, white):
         """Convert a numeric move to an edge."""
@@ -73,6 +87,7 @@ class BridgIt:
 
     def move(self, move):
         """Apply the given move to the current board and return the resulting board."""
+        move = move.upper()
         if not is_valid_move(move, self.M):
             raise ValueError(f"Invalid move: {move}")
         if move in self.moves:
@@ -87,7 +102,7 @@ class BridgIt:
         self.moves.append(move)
         return self
 
-    def __str__(self):
+    def __repr__(self):
         """Return a printable representation of this board"""
         M = self.M
         s = ""
@@ -116,7 +131,7 @@ class BridgIt:
                         s += "○ "
                     else:
                         s += "● "
-            s = s + "\n"
+            s += "\n"
         # letters on bottom row
         s += "  "
         for x in range(0, 2 * M + 1):
@@ -124,12 +139,25 @@ class BridgIt:
                 s += f"{chr(x + ord('A') - 1)} "
             else:
                 s += "  "
-        s = s + "\n"
+        s += "\n"
+        s += display_moves(self.moves)
+        s += "\n"
         return s
 
 
 class BirdCage:
     """A Bird Cage board containing the moves of both players, and a "bird cage" graph.
+
+    Here is a starting board of size `M`=3:
+
+        ● = ● = ●   
+    5   |   |   |   
+    4   ● - ● - ●   
+    3   |   |   |   
+    2   ● - ● - ●   
+    1   |   |   |   
+        ● = ● = ●   
+        A B C D E 
     """
 
     def __init__(self, M=3, moves=None):
@@ -173,6 +201,7 @@ class BirdCage:
 
     def move(self, move):
         """Apply the given move to the current board and return the resulting board."""
+        move = move.upper()
         if not is_valid_move(move, self.M):
             raise ValueError(f"Invalid move: {move}")
         if move in self.moves:
@@ -186,7 +215,7 @@ class BirdCage:
         self.moves.append(move)
         return self
 
-    def __str__(self):
+    def __repr__(self):
         """Return a printable representation of this board"""
         M = self.M
         s = ""
@@ -215,7 +244,7 @@ class BirdCage:
                         s += "● "
                     else:
                         s += "  "
-            s = s + "\n"
+            s += "\n"
         # letters on bottom row
         s += "  "
         for x in range(0, 2 * M + 1):
@@ -223,7 +252,9 @@ class BirdCage:
                 s += f"{chr(x + ord('A') - 1)} "
             else:
                 s += "  "
-        s = s + "\n"        
+        s += "\n"
+        s += display_moves(self.moves)
+        s += "\n" 
         return s
 
 class Random:
@@ -232,7 +263,7 @@ class Random:
         candidate_moves = set(all_moves) - set(board.moves)
         return random.choice(list(candidate_moves))
 
-    def __str__(self):
+    def __repr__(self):
         return "Random"
 
 class Shannon:
@@ -312,7 +343,42 @@ class Shannon:
         # convert to a SymPy Rational
         return v.dc.as_expr().expr
 
-    def __str__(self):
+    def voltage_diffs_str(self, birdcage):
+        M = birdcage.M
+
+        voltage_diffs = self._get_voltage_diffs(birdcage)
+
+        # scale to integers by multiplying all fractions by lcm of the denominators
+        denoms = [v.denominator for v in voltage_diffs.values()]
+        factor = ilcm(*denoms)
+        scaled_voltage_diffs = {k: v * factor for k, v in voltage_diffs.items()}
+
+        max_width = max([len(str(v)) for v in scaled_voltage_diffs.values()])
+        s = ""
+        for y in range(2 * M, -1, -1):
+            # numbers on left side
+            if 0 < y < 2 * M:
+                s += f"{y} "
+            else:
+                s += "  "
+            # main grid
+            for x in range(0, 2 * M + 1):
+                if (x + y) % 2 == 0: # edge
+                    move = _to_alpha(x, y)
+                    if move in scaled_voltage_diffs:
+                        vd = str(scaled_voltage_diffs[move])
+                        s += f"{vd:>{max_width}} "
+                    else:
+                        s += " " * (max_width + 1)
+                else: # node
+                    if y % 2 == 0:
+                        s += "● "
+                    else:
+                        s += "  "
+            s = s + "\n"
+        return s
+
+    def __repr__(self):
         return "Shannon"
 
 class Human:
@@ -331,8 +397,8 @@ class Human:
         self.reverse_char(board)
 
     def get_char_at(self, board):
-        l = 17
-        return str(board)[(self.y - 1) * l + self.x]
+        board_list = str(board).split("\n")
+        return board_list[self.y - 1][self.x]
 
     def clear_char(self, board):
         print(self.term.move_xy(self.x, self.y) + self.get_char_at(board))
@@ -352,19 +418,19 @@ class Human:
                 val = self.term.inkey()
                 if val.code == self.term.KEY_LEFT and self.x > 4:
                     self.move_cursor(-2, 0, board)
-                elif val.code == self.term.KEY_RIGHT and self.x < 12:
+                elif val.code == self.term.KEY_RIGHT and self.x < 4 * board.M:
                     self.move_cursor(2, 0, board)
                 elif val.code == self.term.KEY_UP and self.y > 2:
                     self.move_cursor(0, -1, board)
-                elif val.code == self.term.KEY_DOWN and self.y < 6:
+                elif val.code == self.term.KEY_DOWN and self.y < 2 * board.M:
                     self.move_cursor(0, 1, board)
                 elif val.code == self.term.KEY_ENTER:
-                    move = _to_alpha((self.x - 2) // 2, 7 - self.y)
+                    move = _to_alpha((self.x - 2) // 2, 2 * board.M + 1 - self.y)
                     if move in candidate_moves:
                         break
                     else:
                         move = None
         return move
 
-    def __str__(self):
+    def __repr__(self):
         return "Human"

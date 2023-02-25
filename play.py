@@ -1,8 +1,14 @@
+import sys
+
 from birdcage import *
 
 from blessed import Terminal
 
-def play_interactive(board, player1, player2, M=3, term=None):
+import warnings
+
+warnings.filterwarnings("ignore")
+
+def play_interactive(board, player1, player2, term=None):
     with term.fullscreen(), term.hidden_cursor():
         print(term.move(0, 0) + "{} (W) - {} (B)".format(player1, player2))
         print(term.move(1, 0) + str(board))
@@ -29,8 +35,9 @@ def play_interactive(board, player1, player2, M=3, term=None):
             inp = term.inkey()
 
 if __name__ == '__main__':
+    M = int(sys.argv[1]) if len(sys.argv) > 1 else 3
     term = Terminal()
-    board = BridgIt()
+    board = BirdCage(M=M)
     player1 = Shannon()
     player2 = Human(term)
     play_interactive(board, player1, player2, term=term)

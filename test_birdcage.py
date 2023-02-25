@@ -66,6 +66,10 @@ def test_valid_moves():
     assert set(valid_moves(M=3)) == VALID_MOVES
 
 
+def test_display_moves():
+    assert display_moves(["A5", "C5", "C3", "A1"]) == "A5, c5, C3, a1"
+
+
 def test_game():
     b = BridgIt()
     for move in ["A1", "C3", "C1", "C5", "E1"]:
@@ -84,7 +88,7 @@ def test_bridg_it_long_game():
     for move in moves:
         assert not b.white_has_won()
         assert not b.black_has_won()
-        b = b.move(move.upper())
+        b = b.move(move)
         print()
         print(b)
     assert not b.white_has_won()
@@ -97,7 +101,7 @@ def test_birdcage_long_game():
     for move in moves:
         assert not bc.white_has_won()
         assert not bc.black_has_won()
-        bc = bc.move(move.upper())
+        bc = bc.move(move)
         print()
         print(bc)
     assert not bc.white_has_won()
@@ -131,7 +135,7 @@ def test_shannon_game_M3_no_pull_ups():
             voltage_diffs = s._get_voltage_diffs(bc)
             assert voltage_diffs[move] == voltage_diffs[m1]
         bc.move(m1)
-        bc.move(m2.upper())
+        bc.move(m2)
     assert not bc.white_has_won()
     assert bc.black_has_won()
 
@@ -147,14 +151,14 @@ def test_shannon_game_M3():
             voltage_diffs = s._get_voltage_diffs(bc)
             assert voltage_diffs[move] == voltage_diffs[m1]
         bc.move(m1)
-        bc.move(m2.upper())
+        bc.move(m2)
     assert not bc.white_has_won()
     assert bc.black_has_won()
 
-@pytest.mark.slow
 def test_shannon_game_M4():
     # from "Bridg-It – Beating Shannon’s Analog Heuristic" by Thomas Fisher
     # section 4.2
+    # note that the last two moves are different, but this doesn't change the result
     bc = BirdCage(M=4)
     s = Shannon()
     moves = [
@@ -178,18 +182,14 @@ def test_shannon_game_M4():
         "f2",
         "C7",
         "b6",
-        "E1",
-        "d2",
+        "D2", #"E1",
+        "e1", #"d2",
     ]
     for m1, m2 in zip(*[iter(moves)] * 2):
         move = s.play(bc)
-        if move != m1:
-            # moves differ, but check their voltage differences are the same
-            # this checks that Shannon is consistent with the expected moves
-            voltage_diffs = s._get_voltage_diffs(bc)
-            assert voltage_diffs[move] == voltage_diffs[m1]
+        assert move == m1
         bc.move(m1)
-        bc.move(m2.upper())
+        bc.move(m2)
     assert not bc.white_has_won()
     assert bc.black_has_won()
 
@@ -197,13 +197,12 @@ def test_part_of_circuit_not_connected():
     bc = BirdCage(moves=["E1", "E3", "D2", "B2", "D4", "B4", "E5"])
     s = Shannon()
     # following should not raise an error
-    voltage_diffs = s._get_voltage_diffs(bc)
+    s._get_voltage_diffs(bc)
 
     s = Shannon(use_extra_resistors=False)
     with pytest.raises(Exception):
-        voltage_diffs = s._get_voltage_diffs(bc)
+        s._get_voltage_diffs(bc)
 
-@pytest.mark.slow
 def test_discrete_voltage_discrimination():
     # There are circuits where the Shannon heuristic breaks down
     # when implemented using a 10-bit analog to digital converter (like the Arduino).

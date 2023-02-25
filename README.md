@@ -50,5 +50,5 @@ heuristic in any significant way. (In a real circuit, small differences in resis
 ```shell
 conda create --name birdcage python=3.9
 conda activate birdcage
-pip install lcapy pytest
+pip install -r requirements.txt
 ```
