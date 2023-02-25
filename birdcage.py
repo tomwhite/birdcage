@@ -314,3 +314,57 @@ class Shannon:
 
     def __str__(self):
         return "Shannon"
+
+class Human:
+    def __init__(self, term):
+        self.term = term
+        self.x = 4
+        self.y = 2
+
+    def print_board(self, board):
+        print(self.term.move_xy(0, 0) + str(board))
+
+    def move_cursor(self, dx, dy, board):
+        self.clear_char(board)
+        self.x += dx
+        self.y += dy
+        self.reverse_char(board)
+
+    def get_char_at(self, board):
+        l = 17
+        return str(board)[(self.y - 1) * l + self.x]
+
+    def clear_char(self, board):
+        print(self.term.move_xy(self.x, self.y) + self.get_char_at(board))
+
+    def reverse_char(self, board):
+        print(self.term.move_xy(self.x, self.y) + self.term.reverse(self.get_char_at(board)))
+
+
+    def play(self, board):
+        all_moves = valid_moves(board.M)
+        candidate_moves = set(all_moves) - set(board.moves)
+        move = None
+        self.reverse_char(board)
+        with self.term.cbreak():
+            val = ''
+            while val.lower() != 'q':
+                val = self.term.inkey()
+                if val.code == self.term.KEY_LEFT and self.x > 4:
+                    self.move_cursor(-2, 0, board)
+                elif val.code == self.term.KEY_RIGHT and self.x < 12:
+                    self.move_cursor(2, 0, board)
+                elif val.code == self.term.KEY_UP and self.y > 2:
+                    self.move_cursor(0, -1, board)
+                elif val.code == self.term.KEY_DOWN and self.y < 6:
+                    self.move_cursor(0, 1, board)
+                elif val.code == self.term.KEY_ENTER:
+                    move = _to_alpha((self.x - 2) // 2, 7 - self.y)
+                    if move in candidate_moves:
+                        break
+                    else:
+                        move = None
+        return move
+
+    def __str__(self):
+        return "Human"
