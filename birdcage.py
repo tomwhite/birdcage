@@ -288,23 +288,23 @@ class Shannon:
         G = birdcage.G
         f = self._to_circuit_node
 
-        s = 'V1 "Q" 0 1; down\n'
-        s += f'W "Q" "{M}_{2 * M}"; right={M / 2}\n'
+        s = 'V1 Q 0 1; down\n'
+        s += f'W Q {M}_{2 * M}; right={M / 2}\n'
         if self.use_extra_resistors:
-            s += f'R 0 "{M}_0" 1; right={M / 2}\n' # avoid short
+            s += f'R 0 {M}_0 1; right={M / 2}\n' # avoid short
         else:
-            s += f'W 0 "{M}_0"; right={M / 2}\n'
+            s += f'W 0 {M}_0; right={M / 2}\n'
         for n1, n2, d in G.edges(data=True):
             R = d["weight"]
             orient = self._orientation(n1, n2)
             if R == 0:
-                s += f'W "{f(n1)}" "{f(n2)}"; {orient}\n' # wire
+                s += f'W {f(n1)} {f(n2)}; {orient}\n' # wire
             else:
-                s += f'R__{f(n1)}__{f(n2)} "{f(n1)}" "{f(n2)}" {R}; {orient}\n' # resistor
+                s += f'R__{f(n1)}__{f(n2)} {f(n1)} {f(n2)} {R}; {orient}\n' # resistor
         if self.use_extra_resistors:
             # need pull-up resistors to avoid errors if part of circuit is not connected
             for n in G.nodes():
-                s += f'R__{f(n)}__Q "{f(n)}" "Q" 30\n' # pull-up resistor
+                s += f'R__{f(n)}__Q {f(n)} Q 30\n' # pull-up resistor
         return Circuit(s)
 
     def _get_voltage(self, circuit, node):

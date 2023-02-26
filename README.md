@@ -1,6 +1,7 @@
 # Shannon's Bird Cage
 
 A connection game, also known as Bridg-It, or the Shannon Switching Game.
+
 ## Introduction
 
 Quoting from "Hex: The Full Story" by Ryan B. Hayward (p119):
@@ -43,3 +44,11 @@ First, a resistor should be added in series to the whole circuit, to avoid a rea
 
 Second, it's possible that a part of the circuit can become isolated from both the ground and positive power supply, which means that all nodes in it have a floating voltage. Since voltage differences are used to determine the next move, we use pull-up resistors to ensure that spurious voltage differences are not recorded. By using pull-up resistors with much larger resistance than the ones used in the main circuit, we avoid changing the behaviour of the
 heuristic in any significant way. (In a real circuit, small differences in resistor values mean that the machine may not play identically to the theoretical version, but this is rare, and it usually doesn't make much difference.)
+
+## Build
+
+```shell
+conda create --name birdcage python=3.9
+conda activate birdcage
+pip install lcapy pytest
+```
