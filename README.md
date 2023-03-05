@@ -2,6 +2,10 @@
 
 A connection game, also known as Bridg-It, or the Shannon Switching Game.
 
+> It is also curious that the Hex-player reversed the usual computing procedure in that it solved a basically digital problem by an analog machine. -- _Claude E. Shannon,_ Computers and automata, _1953_
+
+The MIT museum has a [photo of the game](https://webmuseum.mit.edu/detail.php?term=Shannon&module=objects&type=keyword&x=0&y=0&kv=75604&record=16&page=1) that Shannon built in the 1950s.
+
 ## Introduction
 
 Quoting from "Hex: The Full Story" by Ryan B. Hayward (p119):
@@ -115,9 +119,33 @@ Note that pull-up resistors have not been included in these simulations, so ther
 
 ## Hardware implementation
 
-While it is easy to create a resistor network, it is difficult to measure the current flowing through each resistor in the network, which is what we need to use Shannon's Heuristic. Shannon apparently used a bulb in series with each resistor, and then used the brightness as a proxy for current flow, but this seems like it would be difficult to judge, particularly since current flows can be very similar in practice.
+While it is easy to create a resistor network, it is difficult to measure the current flowing through each resistor in the network (in a cost-effective way, at least), which is what we need to use Shannon's Heuristic. Shannon apparently used a bulb in series with each resistor, and then used the brightness as a proxy for current flow, but this seems like it would be difficult to judge, particularly since current flows can be very similar in practice. Gardner (1961) says that Shannon built a second version with "neon lamps and a network that permitted only one lamp to go on".
 
-In my implementation I cheated and used an Arduino to measure the voltage at each point in the network. An Arduino analog pin has an ADC with a granularity of 1024 voltage levels, which is more than adequate to play this game.
+In my implementation I cheated and used an Arduino to measure the voltage at each point in the network. An Arduino analog pin has an analog-to-digital converter with a granularity of 1024 voltage levels, which is more than adequate to play this game.
+
+For a board of size M, we need to measure M(M-1) + 1 voltage levels. (The last "+ 1" is to detect the winner, described below.) So for M=4 we need 13 analog pins. The Arduino UNO only has 6 analog pins, so my first thought was to use a multiplexer to switch the 13 analog inputs to a smaller number of analog pins on the Arduino. However, controlling the multiplexer uses digital pins, and since the UNO has 14 of these and there are also 14 LEDs to control, I opted for an Arduino Mega (which has more than enough pins) so I didn't have to multiplex the outputs too.
+
+The wiring I used for the birdcage resistor network was very low-tech: each node in the network is a cluster of PCB header sockets connected together that are used to connect one node to another with a resistor, a wire, or nothing at all - corresponding to the initial position, SHORT, and CUT, respectively. Playing the game is then a matter of plugging or unplugging wires and resistors in the sockets, which is a bit fiddly, but very "direct". A more polished game would use rotary switches for each node (3 position, 45 degrees), but this would add to the cost quite significantly.
+
+I used a large veroboard for the circuit. This worked very well, but required a lot of breaks in the tracks, using a special track cutter.
+
+Shannon (CUT) indicates the next move via two banks of 7 LEDs. One bank indicates the row and the other the column of the resistor to remove.
+
+Play continues until there is a winner. This is detected by measuring the voltage of the bottom row of nodes. If it is 0V then CUT has won, but if it is 5V then SHORT has won. Note that the pull-up resistors need to be disconnected (in Arduino code) before measuring this voltage.
+
+### Playing the game
+
+The machine plays CUT using Shannon's heuristic by _removing_ resistors. You play SHORT by _replacing_ resistors with wires.
+
+You can play on a board of size 3 or 4 - this is detected at the start by seeing if the top row has jumpers to the second row (M=3) or resistors (M=4). (This is illustrated in the photos below.)
+
+1. Connect all the nodes together with the resistors in the birdcage pattern.
+2. Turn on the power, or press the Arduino's reset button, and all LEDs will light up indicating that it's a new game.
+3. Press the button once. Two LEDs will light up indicating Shannon's move (CUT). Remove the resistor at that position.
+4. Make your move by replacing a resistor with a piece of wire (SHORT).
+5. Go to step 3. and repeat. When the game is over, either all of the LEDs in a vertical line will light up, indicating Shannon (CUT) has won, or all of the horizontal LEDs will light up showing you (SHORT) have won.
+
+Have a look at this [video](images/arduino.mov) to see it in action.
 
 ### Parts list
 
@@ -126,13 +154,13 @@ In my implementation I cheated and used an Arduino to measure the voltage at eac
 - 14x Green LED - 5mm
 - 14x Resistor, 330Ω
 - 30x Resistor, 1kΩ, 1%
-- 1x Vero Board 100mm x 160mm (e.g. CPC Farnell 09-2196L)
+- 1x Veroboard 100mm x 160mm (e.g. CPC Farnell 09-2196L)
 - 16x Vertical PCB Header Socket, 2.54mm 2 Way 1 Row (e.g. CPC Farnell M20-9820206)
 - 2x 0.1" 36-pin Strip Right-Angle Female/Socket Header
 - 2x Male/Male Jumper Wires - 20 x 6" (150mm) (e.g. The Pi Hut 103192)
 - Solid core wire
 - Solder
-- Vero board track cutter
+- Veroboard track cutter
 
 ### Wiring
 
@@ -141,3 +169,21 @@ Here's the veroboard wiring diagram:
 <img alt="Veroboard wiring diagram for birdcage" src="images/birdcage_bb.png" width="800">
 
 ### Code
+
+[birdcage.ino](arduino/birdcage.ino)
+
+### Photos
+
+At the start of an M=3 game. Shannon has made the first move (A1):
+
+<img alt="Playing birdcage M=3 on an Arduino" src="images/arduino_M3.jpg" width="600">
+
+At the start of an M=4 game. No moves have been made yet as all LEDs are on:
+
+<img alt="Playing birdcage M=4 on an Arduino" src="images/arduino_M4.jpg" width="600">
+
+## References
+
+- Fisher, Thomas, (2009), [_Bridg-It – Beating Shannon’s Analog Heuristic_](<(https://www.minet.uni-jena.de//math-net/reports/sources/2009/09-07report.pdf)>)
+- Gardner, Martin, (1961), **More Mathematical Puzzles and Diversions**, Penguin Books
+- Hayward, Ryan B., with Toft, Bjarne, (2019) **Hex: The Full Story**, CRC Press

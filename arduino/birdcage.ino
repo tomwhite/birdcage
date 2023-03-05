@@ -3,6 +3,8 @@ Shannon's Bird Cage
 
 Here is the circuit used for the game.
 
+This is an M=4 board. An M=3 board can be used too.
+
 8   ● = ● = ● = ●   
 7   |   |   |   |   
 6   ● - ● - ● - ●   
@@ -42,8 +44,8 @@ voltage drop between adjoining nodes.
 */
 
 // Size of game (can be 3 or 4)
-// TODO: use this to parameterize game
-const int M = 4;
+// This is determined in setup
+int M = 4;
 
 // Pins used to read voltages using analogRead
 byte nodePins[13] = {A13, A12, A11, A10, A9, A8, A6, A5, A4, A3, A2, A1, A15};
@@ -80,9 +82,7 @@ void setup() {
 
   for (int i = 0; i < 7; i++) {
     pinMode(ledColumnPins[i], OUTPUT);
-    pinMode(ledRowPins[i], OUTPUT);
-    digitalWrite(ledColumnPins[i], HIGH);    
-    digitalWrite(ledRowPins[i], HIGH);    
+    pinMode(ledRowPins[i], OUTPUT);   
   }
 
   for (int i = 0; i < 9; i++) {
@@ -97,6 +97,19 @@ void setup() {
   volts[8][2] = maxV;
   volts[8][4] = maxV;
   volts[8][6] = maxV;
+
+  // work out if M=3 or M=4 by seeing if there is a jumper at A7
+  updateVoltages();
+  computeDifferences();
+
+  M = volts[7][0] == 0 ? 3 : 4;
+  Serial.print("M=");
+  Serial.println(M);
+
+  for (int i = 0; i < M * 2 - 1; i++) {
+    digitalWrite(ledColumnPins[i], HIGH);    
+    digitalWrite(ledRowPins[i], HIGH);    
+  }
 }
 
 void loop() {
@@ -205,8 +218,8 @@ void chooseMove() {
   int maxVoltageDiff = -1;
   int mi = -1;
   int mj = -1;
-  for (int i = 7; i >= 1; i--) { // skip top and bottom rows
-    for (int j = 0; j < 7; j++) {
+  for (int i = M * 2 - 1; i >= 1; i--) { // skip top and bottom rows
+    for (int j = 0; j < M * 2 - 1; j++) {
       // check valid move, and hasn't already been played
       if (isMove(i, j) && moves[i][j] == 0) {
         if (volts[i][j] > maxVoltageDiff) {
@@ -235,14 +248,14 @@ void turnAllLedsOff() {
 
 void turnRowLedsOn() {
   turnAllLedsOff();
-  for (int i = 0; i < 7; i++) { 
+  for (int i = 0; i < M * 2 - 1; i++) { 
     digitalWrite(ledRowPins[i], HIGH);    
   }
 }
 
 void turnColumnLedsOn() {
   turnAllLedsOff();
-  for (int i = 0; i < 7; i++) { 
+  for (int i = 0; i < M * 2 - 1; i++) { 
     digitalWrite(ledColumnPins[i], HIGH);    
   }
 }
