@@ -4,7 +4,7 @@ A connection game, also known as Bridg-It, or the Shannon Switching Game.
 
 > It is also curious that the Hex-player reversed the usual computing procedure in that it solved a basically digital problem by an analog machine. -- _Claude E. Shannon,_ Computers and automata, _1953_
 
-The MIT museum has a [photo of the game](https://webmuseum.mit.edu/detail.php?term=Shannon&module=objects&type=keyword&x=0&y=0&kv=75604&record=16&page=1) that Shannon built in the 1950s.
+The MIT museum has a [photo of the game](https://mitmuseum.mit.edu/collections/object/2007.030.012a) that Shannon built in the 1950s.
 
 ## Introduction
 
